@@ -1,0 +1,30 @@
+If the entire network should be frozen.
+
+Freezing the entire network effectively turns your transformer into a fixed feature extractor. In this scenario, you would not update any parameters during training, which drastically reduces computational cost and eliminates the risk of forgetting. However, because none of the pre-trained representations adapt to your specific tasks, you’ll often see suboptimal performance unless your new tasks closely mirror the original pre-training objectives.
+
+
+If only the transformer backbone should be frozen.
+
+Freezing only the transformer backbone while fine-tuning both task specific heads strikes a middle ground, you leverage the general purpose language understanding encoded in the pre-trained layers and concentrate your computational budget on adapting each head to its respective label space. This approach can be especially advantageous when you have moderate amounts of labeled data enough to train the heads confidently but insufficient to safely update the hundreds of millions of transformer parameters without overfitting.
+
+
+If only one of the task-specific heads (either for Task A or Task B) should be frozen.
+
+In the case where you freeze one of the task specific heads but allow the transformer backbone and the other head to train, you prioritize stability in the frozen task’s performance while directing representational learning capacity toward your higher priority task. For example, if Task A has scarce annotated data and Task B is well-served by existing labels, you might freeze the Task A head and focus training on the transformer and Task B head, allowing those components to refine shared features that support Task B without degrading Task A.
+
+
+The choice of a pre-trained model.
+
+When leveraging transfer learning, I would start with a sentence embedding variant of a modern transformer (e.g., a pre-trained SBERT or RoBERTa model fine-tuned for semantic similarity). These models already encapsulate rich contextual embeddings suited for downstream NLP tasks and offer an excellent foundation for both classification and sentiment analysis.
+
+The layers you would freeze/unfreeze
+
+To balance stability and adaptability, I would initially freeze the lower half of the transformer layers—those closest to the input and unfreeze the top layers plus both task heads. After a few epochs, I’d perform a gradual unfreezing schedule, sequentially unlocking deeper layers if validation loss plateaus or if longer-range dependencies need to be learned. This staged approach safeguards the well generalized linguistic features in the early layers while granting capacity to learn task-specific patterns in the higher layers.
+
+The rationale behind these choices is:
+ 
+1. Lower transformer layers capture fundamental syntax and semantics that transfer broadly across tasks. 
+
+2. Second, higher layers encode more specialized abstractions that benefit from fine-tuning on your target datasets. 
+
+3. Third, freezing early layers mitigates overfitting and accelerates convergence, especially when training data is limited. By unfreezing gradually, you also gain control over where and when new information reshapes the representation space, leading to more robust and stable multi-task performance.
